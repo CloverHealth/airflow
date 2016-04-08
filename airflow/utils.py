@@ -869,4 +869,4 @@ def remove_sensitive_data(string):
     string = re.sub(r'[A-Z]*\d{6,9}[A-Z]*', '[REDACTED]', string, re.I)
 
     # Phone
-    return re.sub(r'\(?\d{3}[\s-)./]?\d{3}[-.\s]?\d{4}', '[REDACTED]', string, re.I)
+    return re.sub(r'\(?\d{3}[-\s)./]?\d{3}[-.\s]?\d{4}', '[REDACTED]', string, re.I)
