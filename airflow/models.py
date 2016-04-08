@@ -1175,11 +1175,15 @@ class TaskInstance(Base):
     def email_alert(self, exception, is_retry=False):
         task = self.task
         title = "Airflow alert: {self}".format(**locals())
-        exception = str(exception).replace('\n', '<br>')
+
+        # <PHI MODIFICATION>
+        exception = utils.format_error(exception, include_trace=True)
+        # </PHI MODIFICATION>
+
         try_ = task.retries + 1
         body = (
             "Try {self.try_number} out of {try_}<br>"
-            "Exception:<br>{exception}<br>"
+            "Exception:<br><pre>{exception}</pre><br>"
             "Log: <a href='{self.log_url}'>Link</a><br>"
             "Host: {self.hostname}<br>"
             "Log file: {self.log_filepath}<br>"
