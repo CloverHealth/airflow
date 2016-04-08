@@ -1175,11 +1175,19 @@ class TaskInstance(Base):
     def email_alert(self, exception, is_retry=False):
         task = self.task
         title = "Airflow alert: {self}".format(**locals())
-        exception = str(exception).replace('\n', '<br>')
+
+        # <PHI MODIFICATION>
+        # We can't show the error message because it might reveal PHI, so we'll
+        # just show the exception type and stack trace and hope that's enough
+        # for engineering to debug.
+        exception_type = type(exception).__qualname__
+        exception = ''.join(traceback.format_tb(exception.__traceback__)).replace('\n', '<br>')
+        # </PHI MODIFICATION>
+
         try_ = task.retries + 1
         body = (
             "Try {self.try_number} out of {try_}<br>"
-            "Exception:<br>{exception}<br>"
+            "Exception:<br>Crash ({exception_type}):<br>{exception}<br>"
             "Log: <a href='{self.log_url}'>Link</a><br>"
             "Host: {self.hostname}<br>"
             "Log file: {self.log_filepath}<br>"

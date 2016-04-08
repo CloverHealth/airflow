@@ -775,3 +775,98 @@ class LoggingMixin(object):
             self._logger = logging.root.getChild(self.__class__.__module__ + '.' +self.__class__.__name__)
             return self._logger
 
+
+def format_error(error_object, verbose=True, include_trace=False):
+    """Given an exception, return an appropriately formatted error message.
+
+    This is primarily for reformatting psycopg2 errors to avoid leaking PHI, but
+    provides a convenient interface for making other exception messages pretty.
+
+    Arguments:
+        error_object (BaseException):
+            The exception whose message needs to be formatted or cleaned.
+
+        verbose (bool):
+            If True, includes type and cause information in the message. If
+            False, only formats the message and includes no extra information.
+
+        include_trace (bool):
+            If True, the stack trace from the exception will be appended to the
+            error message regardless of whether `verbose` is True or not.
+
+    Returns: The reformatted exception message as a string.
+    """
+    if not error_object:
+        return None
+    elif not isinstance(error_object, BaseException):
+        # Not an exception.
+        return str(error_object)
+    elif isinstance(error_object, KeyboardInterrupt):
+        return '(KeyboardInterrupt) Manually killed by user.'
+    elif isinstance(error_object, sqla_exc.SQLAlchemyError):
+        # SQLAlchemy exceptions preserve the original DBAPI exception (if there
+        # was one) in the `orig` property. Use that if possible.
+        original_exception = getattr(error_object, 'orig', None)
+        if isinstance(original_exception, psycopg2.Error):
+            error_object = original_exception
+
+    if isinstance(error_object, psycopg2.Error):
+        # Database errors can contain PHI if there's a query dump, so just take
+        # the primary error message instead of the entire thing.
+        message = error_object.diag.message_primary or \
+                  error_object.diag.message_hint or \
+                  str(error_object)
+
+        # Only take the first line of the logging message because that'll almost
+        # certainly not contain PHI.
+        message = 'PG%s: %s' %  (error_object.pgcode or '00000', message.split('\n')[0])
+    else:
+        # Not sure what type of exception this is.
+        message = str(error_object) or '(No exception message.)'
+
+    message = remove_possible_phi(message)
+
+    if include_trace:
+        message += '\n' + ''.join(traceback.format_tb(error_object.__traceback__))
+
+    if not verbose:
+        return message
+
+    # Error messages look weird when we're exception-chaining, so if there's a
+    # cause or context set for the exception, format it differently.
+    cause = getattr(error_object, '__cause__', None)
+
+    # Sometimes exceptions are their own causes due to incorrectly re-raising
+    # exceptions, so we'll ignore __cause__ if that happens.
+    if cause and cause is not error_object:
+        cause_str = ' from ' + type(cause).__qualname__
+    else:
+        cause_str = ''
+
+    return '(%s%s) %s' % (type(error_object).__qualname__, cause_str, message)
+
+
+def remove_sensitive_data(string):
+    """Remove things that might be PHI or PII from `string` and return a new copy.
+
+    This isn't comprehensive and only uses rudimentary heuristics to figure out
+    what might be sensitive data. It's not infallible, but it's better than nothing.
+
+    Arguments:
+        string (str):
+            A string that might have sensitive data in it.
+
+    Returns (str):
+        A new string with whatever looks like might be PHI stripped out.
+    """
+    # CPID
+    string = re.sub(r'CP\d+', '[REDACTED]', string, re.I)
+
+    # SSN, HICN
+    string = re.sub(r'[A-Z]*\d{3}-?\d{2}-?\d{4}[A-Z]*', '[REDACTED]', string, re.I)
+
+    # RRB
+    string = re.sub(r'[A-Z]*\d{6,9}[A-Z]*', '[REDACTED]', string, re.I)
+
+    # Phone
+    return re.sub(r'\(?\d{3}[\s-)./]?\d{3}[-.\s]?\d{4}', '[REDACTED]', string, re.I)
