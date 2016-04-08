@@ -32,6 +32,7 @@ from alembic.migration import MigrationContext
 
 from contextlib import contextmanager
 
+import psycopg2
 from sqlalchemy import event, exc
 from sqlalchemy.pool import Pool
 
@@ -803,7 +804,7 @@ def format_error(error_object, verbose=True, include_trace=False):
         return str(error_object)
     elif isinstance(error_object, KeyboardInterrupt):
         return '(KeyboardInterrupt) Manually killed by user.'
-    elif isinstance(error_object, sqla_exc.SQLAlchemyError):
+    elif isinstance(error_object, exc.SQLAlchemyError):
         # SQLAlchemy exceptions preserve the original DBAPI exception (if there
         # was one) in the `orig` property. Use that if possible.
         original_exception = getattr(error_object, 'orig', None)
