@@ -824,7 +824,7 @@ def format_error(error_object, verbose=True, include_trace=False):
         # Not sure what type of exception this is.
         message = str(error_object) or '(No exception message.)'
 
-    message = remove_possible_phi(message)
+    message = remove_sensitive_data(message)
 
     if include_trace:
         message += '\n' + ''.join(traceback.format_tb(error_object.__traceback__))
