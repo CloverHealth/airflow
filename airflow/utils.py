@@ -25,6 +25,7 @@ import signal
 import six
 import smtplib
 from tempfile import mkdtemp
+import traceback
 
 from alembic.config import Config
 from alembic import command
