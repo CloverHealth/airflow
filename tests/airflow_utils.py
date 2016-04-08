@@ -18,8 +18,8 @@ class TestETLLoggingFormatting(unittest.TestCase):
 
     def test_falsy(self):
         """Make sure that anything falsy passed in results in None."""
-        self.assertIsNone(logging.format_error(None))
-        self.assertIsNone(logging.format_error(0))
+        self.assertIsNone(utils.format_error(None))
+        self.assertIsNone(utils.format_error(0))
 
     def test_nonexception(self):
         """Anything not an Exception should be returned as the str of itself."""
@@ -35,24 +35,24 @@ class TestETLLoggingFormatting(unittest.TestCase):
         )
 
         for obj in test_objects:
-            self.assertEqual(logging.format_error(obj), str(obj))
+            self.assertEqual(utils.format_error(obj), str(obj))
 
     def test_keyboardinterrupt(self):
         """Fixed result for KeyboardInterrupt."""
         exc = KeyboardInterrupt()
-        self.assertEqual(logging.format_error(exc),
+        self.assertEqual(utils.format_error(exc),
                          '(KeyboardInterrupt) Manually killed by user.')
 
         exc = KeyboardInterrupt("Python doesn't use exception messages for this.")
-        self.assertEqual(logging.format_error(exc),
+        self.assertEqual(utils.format_error(exc),
                          '(KeyboardInterrupt) Manually killed by user.')
 
     def test_without_cause(self):
         """No cause --> shouldn't have extra information."""
         exc = ValueError('Something is broken.')
-        self.assertEqual(logging.format_error(exc),
+        self.assertEqual(utils.format_error(exc),
                          '(ValueError) Something is broken.')
-        self.assertEqual(logging.format_error(exc, verbose=False),
+        self.assertEqual(utils.format_error(exc, verbose=False),
                          'Something is broken.')
 
     def test_with_cause(self):
@@ -60,9 +60,9 @@ class TestETLLoggingFormatting(unittest.TestCase):
         exc = RuntimeError('Something exploded.')
         exc.__cause__ = OSError('File not found.')
 
-        self.assertEqual(logging.format_error(exc),
+        self.assertEqual(utils.format_error(exc),
                          '(RuntimeError from OSError) Something exploded.')
-        self.assertEqual(logging.format_error(exc, verbose=False),
+        self.assertEqual(utils.format_error(exc, verbose=False),
                          'Something exploded.')
 
     def test_with_self_cause(self):
@@ -70,14 +70,14 @@ class TestETLLoggingFormatting(unittest.TestCase):
         exc = RuntimeError('BOOM')
         exc.__cause__ = exc
 
-        self.assertEqual(logging.format_error(exc), '(RuntimeError) BOOM')
+        self.assertEqual(utils.format_error(exc), '(RuntimeError) BOOM')
 
     def test_with_traceback(self):
         """Test that there's *something* after the error message when we ask for a traceback."""
         try:
             raise RuntimeError('BOOM')
         except RuntimeError as exc:
-            message = logging.format_error(exc, include_trace=True)
+            message = utils.format_error(exc, include_trace=True)
             self.assertRegex(message, r'(?m)^\(RuntimeError\) BOOM\n.+$')
 
     def test_with_traceback_unverbose(self):
@@ -85,7 +85,7 @@ class TestETLLoggingFormatting(unittest.TestCase):
         try:
             raise RuntimeError('BOOM')
         except RuntimeError as exc:
-            message = logging.format_error(exc, verbose=False, include_trace=True)
+            message = utils.format_error(exc, verbose=False, include_trace=True)
             self.assertRegex(message, r'(?m)^BOOM\n.+$')
 
 
