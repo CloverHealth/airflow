@@ -245,7 +245,7 @@ def kill_process_tree(logger, pid):
                 logger.warn("Killing descendant process {} PID: {}"
                             .format(descendant.cmdline(), descendant.pid))
                 try:
-                    kill_using_shell(descendant.pid, signal.SIGTERM)
+                    kill_using_shell(descendant.pid, signal.SIGKILL)
                     descendant.wait()
                 except psutil.NoSuchProcess:
                     descendant_processes.remove(descendant)
