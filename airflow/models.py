@@ -1349,6 +1349,9 @@ class TaskInstance(Base):
 
         context = {}
         try:
+            # Before execution, set these env vars for annotating the SQL logs
+            os.environ['CLOVER_DAG_ID'] = self.dag_id
+            os.environ['CLOVER_TASK_ID'] = self.task_id
             logging.info(msg.format(self=self))
             if not mark_success:
                 context = self.get_template_context()
@@ -1396,7 +1399,10 @@ class TaskInstance(Base):
         except (Exception, KeyboardInterrupt) as e:
             self.handle_failure(e, test_mode, context)
             raise
-
+        finally:
+            # After execution, unset these env vars
+            os.environ.pop('CLOVER_DAG_ID', '')
+            os.environ.pop('CLOVER_TASK_ID', '')
         # Recording SUCCESS
         self.end_date = datetime.now()
         self.set_duration()
