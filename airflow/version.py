@@ -13,4 +13,4 @@
 # limitations under the License.
 #
 
-version = '1.8.1-clover-r1'
+version = '1.8.1-clover-r4'
