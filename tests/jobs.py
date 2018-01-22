@@ -666,7 +666,7 @@ class SchedulerJobTest(unittest.TestCase):
         session.merge(ti3)
         session.commit()
 
-        dagbag = self._make_simple_dag_bag([dag, dag2, dag3])
+        dagbag = SimpleDagBag([dag, dag2, dag3])
         scheduler = SchedulerJob(num_runs=0, run_duration=0)
         scheduler._change_state_for_tis_without_dagrun(
             simple_dag_bag=dagbag,
