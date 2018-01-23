@@ -35,7 +35,8 @@ import time
 from time import sleep
 
 import psutil
-from sqlalchemy import Column, Integer, String, DateTime, func, Index, or_
+from sqlalchemy import Column, Integer, String, DateTime, func, Index, or_, and_
+from sqlalchemy import update
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm.session import make_transient
 from tabulate import tabulate
@@ -917,8 +918,9 @@ class SchedulerJob(BaseJob):
         """
         For all DAG IDs in the SimpleDagBag, look for task instances in the
         old_states and set them to new_state if the corresponding DagRun
-        exists but is not in the running state. This normally should not
-        happen, but it can if the state of DagRuns are changed manually.
+        does not exist or exists but is not in the running state. This
+        normally should not happen, but it can if the state of DagRuns are
+        changed manually.
 
         :param old_states: examine TaskInstances in this state
         :type old_state: list[State]
@@ -928,45 +930,40 @@ class SchedulerJob(BaseJob):
         simple_dag_bag and with states in the old_state will be examined
         :type simple_dag_bag: SimpleDagBag
         """
+        tis_changed = 0
+        query = session \
+            .query(models.TaskInstance) \
+            .outerjoin(models.DagRun, and_(
+                models.TaskInstance.dag_id == models.DagRun.dag_id,
+                models.TaskInstance.execution_date == models.DagRun.execution_date)) \
+            .filter(models.TaskInstance.dag_id.in_(simple_dag_bag.dag_ids)) \
+            .filter(models.TaskInstance.state.in_(old_states)) \
+            .filter(or_(
+                models.DagRun.state != State.RUNNING,
+                models.DagRun.state.is_(None)))
+        if self.using_sqlite:
+            tis_to_change = query \
+                .with_for_update() \
+                .all()
+            for ti in tis_to_change:
+                ti.set_state(new_state, session=session)
+                tis_changed += 1
+        else:
+            subq = query.subquery()
+            tis_changed = session \
+                .query(models.TaskInstance) \
+                .filter(and_(
+                    models.TaskInstance.dag_id == subq.c.dag_id,
+                    models.TaskInstance.execution_date ==
+                    subq.c.execution_date)) \
+                .update({models.TaskInstance.state: new_state},
+                        synchronize_session=False)
+            session.commit()
 
-        task_instances_to_change = (
-            session
-            .query(models.TaskInstance)
-            .filter(models.TaskInstance.dag_id.in_(simple_dag_bag.dag_ids))
-            .filter(models.TaskInstance.state.in_(old_states))
-            .with_for_update()
-            .all()
-        )
-        """:type: list[TaskInstance]"""
-
-        for task_instance in task_instances_to_change:
-            dag_runs = DagRun.find(dag_id=task_instance.dag_id,
-                                   execution_date=task_instance.execution_date,
-                                   )
-
-            if len(dag_runs) == 0:
-                self.logger.warn("DagRun for %s %s does not exist",
-                                 task_instance.dag_id,
-                                 task_instance.execution_date)
-                continue
-
-            # There should only be one DAG run. Add some logging info if this
-            # is not the case for later debugging.
-            if len(dag_runs) > 1:
-                self.logger.warn("Multiple DagRuns found for {} {}: {}"
-                                 .format(task_instance.dag_id,
-                                         task_instance.execution_date,
-                                         dag_runs))
-
-            if not any(dag_run.state == State.RUNNING for dag_run in dag_runs):
-                self.logger.warn("Setting {} to state={} as it does not have "
-                                 "a DagRun in the {} state"
-                                 .format(task_instance,
-                                         new_state,
-                                         State.RUNNING))
-                task_instance.state = new_state
-                session.merge(task_instance)
-        session.commit()
+        if tis_changed > 0:
+            self.logger.warning("Set {} task instances to state={} as their associated "
+                                "DagRun was not in RUNNING state".format(
+                tis_changed, new_state))
 
     @provide_session
     def _execute_task_instances(self,
