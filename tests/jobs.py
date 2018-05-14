@@ -613,13 +613,17 @@ class SchedulerJobTest(unittest.TestCase):
         session.close()
 
     def test_change_state_for_tis_without_dagrun(self):
-        dag = DAG(
+        dag1 = DAG(
             dag_id='test_change_state_for_tis_without_dagrun',
             start_date=DEFAULT_DATE)
 
         DummyOperator(
-            task_id='dummy',
-            dag=dag,
+            task_id='dummy1a',
+            dag=dag1,
+            owner='airflow')
+        DummyOperator(
+            task_id='dummy1b',
+            dag=dag1,
             owner='airflow')
 
         dag2 = DAG(
@@ -627,7 +631,7 @@ class SchedulerJobTest(unittest.TestCase):
             start_date=DEFAULT_DATE)
 
         DummyOperator(
-            task_id='dummy',
+            task_id='dummy2',
             dag=dag2,
             owner='airflow')
 
@@ -636,12 +640,12 @@ class SchedulerJobTest(unittest.TestCase):
             start_date=DEFAULT_DATE)
 
         DummyOperator(
-            task_id='dummy',
+            task_id='dummy3',
             dag=dag3,
             owner='airflow')
 
         session = settings.Session()
-        dr = dag.create_dagrun(run_id=DagRun.ID_PREFIX,
+        dr1 = dag1.create_dagrun(run_id=DagRun.ID_PREFIX,
                                state=State.RUNNING,
                                execution_date=DEFAULT_DATE,
                                start_date=DEFAULT_DATE,
@@ -653,20 +657,22 @@ class SchedulerJobTest(unittest.TestCase):
                                  start_date=DEFAULT_DATE,
                                  session=session)
 
-        ti = dr.get_task_instance(task_id='dummy', session=session)
-        ti.state = State.SCHEDULED
+        ti1a = dr1.get_task_instance(task_id='dummy1a', session=session)
+        ti1a.state = State.SCHEDULED
+        ti1b = dr1.get_task_instance(task_id='dummy1b', session=session)
+        ti1b.state = State.SUCCESS
         session.commit()
 
-        ti2 = dr2.get_task_instance(task_id='dummy', session=session)
+        ti2 = dr2.get_task_instance(task_id='dummy2', session=session)
         ti2.state = State.SCHEDULED
         session.commit()
 
-        ti3 = TI(dag3.get_task('dummy'), DEFAULT_DATE)
+        ti3 = TI(dag3.get_task('dummy3'), DEFAULT_DATE)
         ti3.state = State.SCHEDULED
         session.merge(ti3)
         session.commit()
 
-        dagbag = SimpleDagBag([dag, dag2, dag3])
+        dagbag = self._make_simple_dag_bag([dag1, dag2, dag3])
         scheduler = SchedulerJob(num_runs=0, run_duration=0)
         scheduler._change_state_for_tis_without_dagrun(
             simple_dag_bag=dagbag,
@@ -674,20 +680,26 @@ class SchedulerJobTest(unittest.TestCase):
             new_state=State.NONE,
             session=session)
 
-        ti.refresh_from_db(session=session)
-        self.assertEqual(ti.state, State.SCHEDULED)
+        ti1a = dr1.get_task_instance(task_id='dummy1a', session=session)
+        ti1a.refresh_from_db(session=session)
+        self.assertEqual(ti1a.state, State.SCHEDULED)
 
+        ti1b = dr1.get_task_instance(task_id='dummy1b', session=session)
+        ti1b.refresh_from_db(session=session)
+        self.assertEqual(ti1b.state, State.SUCCESS)
+
+        ti2 = dr2.get_task_instance(task_id='dummy2', session=session)
         ti2.refresh_from_db(session=session)
         self.assertEqual(ti2.state, State.SCHEDULED)
 
         ti3.refresh_from_db(session=session)
         self.assertEquals(ti3.state, State.NONE)
 
-        dr.refresh_from_db(session=session)
-        dr.state = State.FAILED
+        dr1.refresh_from_db(session=session)
+        dr1.state = State.FAILED
 
         # why o why
-        session.merge(dr)
+        session.merge(dr1)
         session.commit()
 
         scheduler._change_state_for_tis_without_dagrun(
@@ -695,8 +707,12 @@ class SchedulerJobTest(unittest.TestCase):
             old_states=[State.SCHEDULED, State.QUEUED],
             new_state=State.NONE,
             session=session)
-        ti.refresh_from_db(session=session)
-        self.assertEqual(ti.state, State.NONE)
+        ti1a.refresh_from_db(session=session)
+        self.assertEqual(ti1a.state, State.NONE)
+
+        # don't touch ti1b
+        ti1b.refresh_from_db(session=session)
+        self.assertEqual(ti1b.state, State.SUCCESS)
 
         # don't touch ti2
         ti2.refresh_from_db(session=session)
