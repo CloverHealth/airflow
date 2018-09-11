@@ -35,6 +35,7 @@ from airflow.www_rbac.utils import CustomSQLAInterface
 from tests.test_utils.mock_security_manager import MockSecurityManager
 
 
+
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(name)s:%(message)s')
 logging.getLogger().setLevel(logging.DEBUG)
 log = logging.getLogger(__name__)
