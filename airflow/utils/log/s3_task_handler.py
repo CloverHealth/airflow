@@ -17,6 +17,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import os
+import re
 
 from cached_property import cached_property
 
@@ -108,16 +109,20 @@ class S3TaskHandler(FileTaskHandler, LoggingMixin):
         log_relative_path = self._render_filename(ti, try_number)
         remote_loc = os.path.join(self.remote_base, log_relative_path)
 
+        old_remote_loc = self._gen_old_remote(remote_loc)
+
+        log = ''
         if self.s3_log_exists(remote_loc):
-            # If S3 remote file exists, we do not fetch logs from task instance
-            # local machine even if there are errors reading remote logs, as
-            # returned remote_log will contain error messages.
-            remote_log = self.s3_read(remote_loc, return_error=True)
-            log = '*** Reading remote log from {}.\n{}\n'.format(
-                remote_loc, remote_log)
-            return log, {'end_of_log': True}
+            pass
+        elif self.s3_log_exists(old_remote_loc):
+            remote_loc = old_remote_loc
+            log += '*** Reading from legacy logs location {}\n'.format(remote_loc)
         else:
             return super(S3TaskHandler, self)._read(ti, try_number)
+
+        remote_log = self.s3_read(remote_loc, return_error=True)
+        log += '*** Reading remote log from {}.\n{}\n'.format(remote_loc, remote_log)
+        return log, {'end_of_log': True}
 
     def s3_log_exists(self, remote_log_location):
         """
@@ -178,3 +183,16 @@ class S3TaskHandler(FileTaskHandler, LoggingMixin):
             )
         except Exception:
             self.log.exception('Could not write logs to %s', remote_log_location)
+
+    @staticmethod
+    def _gen_old_remote(remote_location):
+        """ airflow 1.8 stored logs in a different way than 1.10
+        this method just returns a 1.8 style remote location to
+        allow viewing old logs. By 2019 this method could be safely removed
+        old: /DAG/task/timestamp
+        new: /DAG/task/timestamp_with_offset/try_number.log
+        """
+        matched = re.match(r"^(.*?)\+00", remote_location).groups()
+        if matched:
+            # return the capture group, excluding the offset + log
+            return matched[0]

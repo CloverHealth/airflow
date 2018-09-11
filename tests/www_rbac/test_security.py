@@ -36,6 +36,7 @@ from airflow.exceptions import AirflowException
 from airflow.www_rbac.security import AirflowSecurityManager
 
 
+
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(name)s:%(message)s')
 logging.getLogger().setLevel(logging.DEBUG)
 log = logging.getLogger(__name__)
