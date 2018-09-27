@@ -104,7 +104,7 @@ class S3TaskHandler(FileTaskHandler, LoggingMixin):
         log_relative_path = self._render_filename(ti, try_number)
         remote_loc = os.path.join(self.remote_base, log_relative_path)
 
-        if self.s3_log_exists(remote_loc):
+        try:
             # If S3 remote file exists, we do not fetch logs from task instance
             # local machine even if there are errors reading remote logs, as
             # returned remote_log will contain error messages.
@@ -112,8 +112,15 @@ class S3TaskHandler(FileTaskHandler, LoggingMixin):
             log = '*** Reading remote log from {}.\n{}\n'.format(
                 remote_loc, remote_log)
             return log, {'end_of_log': True}
-        else:
-            return super(S3TaskHandler, self)._read(ti, try_number)
+        except Exception:
+            try:
+                remote_log = self.s3_read(remote_loc.replace('+00:00', ''), return_error=True)
+                log = '*** Reading remote log from {}.\n{}\n'.format(
+                remote_loc, remote_log)
+                return log, {'end_of_log': True}
+            except Exception:
+                raise
+        return super(S3TaskHandler, self)._read(ti, try_number)
 
     def s3_log_exists(self, remote_log_location):
         """
