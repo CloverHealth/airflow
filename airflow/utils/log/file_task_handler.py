@@ -7,9 +7,9 @@
 # to you under the Apache License, Version 2.0 (the
 # "License"); you may not use this file except in compliance
 # with the License.  You may obtain a copy of the License at
-# 
+#
 #   http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing,
 # software distributed under the License is distributed on an
 # "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -121,7 +121,7 @@ class FileTaskHandler(logging.Handler):
                 except (AirflowConfigException, ValueError):
                     pass
 
-                response, log = self._try_both_log_locations(url, timeout, log)
+                response = requests.get(url, timeout=timeout)
 
                 # Check if the resource was properly fetched
                 response.raise_for_status()
@@ -205,19 +205,3 @@ class FileTaskHandler(logging.Handler):
             os.chmod(full_path, 0o666)
 
         return full_path
-
-    @staticmethod
-    def _try_both_log_locations(url, timeout, log):
-        """If a logfile cannot be found, try the timezone naive url format."""
-
-        try:
-            response = requests.get(url, timeout=timeout)
-        except requests.exceptions.ConnectionError as _:
-            log += "*** (clover patch) Cannot find log at filename {url}\n".format(url=url)
-            old_url = make_timezone_naive(url)
-            try:
-                response = requests.get(old_url, timeout=timeout)
-            except requests.exceptions.ConnectionError as _:
-                log += "*** (clover patch) Cannot find log at filename {old_url}\n".format(old_url=old_url)
-
-        return response, log
