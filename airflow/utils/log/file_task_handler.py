@@ -103,8 +103,8 @@ class FileTaskHandler(logging.Handler):
                     log += "*** Reading local file: {}\n".format(location)
                     log += "".join(f.readlines())
             except Exception as e:
-                log = "*** Failed to load local log file: {}\n".format(location)
-                log += "*** {}\n".format(str(e))
+                log = "***** Failed to load local log file: {}\n".format(location)
+                log += "***** {}\n".format(str(e))
         else:
             url = os.path.join(
                 "http://{ti.hostname}:{worker_log_server_port}/log", log_relative_path
@@ -112,8 +112,8 @@ class FileTaskHandler(logging.Handler):
                 ti=ti,
                 worker_log_server_port=conf.get('celery', 'WORKER_LOG_SERVER_PORT')
             )
-            log += "*** Log file does not exist: {}\n".format(location)
-            log += "*** Fetching from: {}\n".format(url)
+            log += "***** Log file does not exist: {}\n".format(location)
+            log += "***** Fetching from: {}\n".format(url)
             try:
                 timeout = None  # No timeout
                 try:
