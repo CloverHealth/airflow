@@ -19,6 +19,7 @@
 import os
 
 from airflow import configuration
+from airflow.utils.helpers import make_timezone_naive
 from airflow.utils.log.logging_mixin import LoggingMixin
 from airflow.utils.log.file_task_handler import FileTaskHandler
 
@@ -102,25 +103,19 @@ class S3TaskHandler(FileTaskHandler, LoggingMixin):
         # task instance might be different than task instance passed in
         # in set_context method.
         log_relative_path = self._render_filename(ti, try_number)
-        remote_loc = os.path.join(self.remote_base, log_relative_path)
+        new_remote_loc = os.path.join(self.remote_base, log_relative_path)
+        old_remote_loc = make_timezone_naive(new_remote_loc)
 
-        try:
-            # If S3 remote file exists, we do not fetch logs from task instance
-            # local machine even if there are errors reading remote logs, as
-            # returned remote_log will contain error messages.
-            remote_log = self.s3_read(remote_loc, return_error=True)
-            log = '*** Reading remote log from {}.\n{}\n'.format(
-                remote_loc, remote_log)
-            return log, {'end_of_log': True}
-        except Exception:
-            try:
-                remote_log = self.s3_read(remote_loc.replace('+00:00', ''), return_error=True)
-                log = '*** Reading remote log from {}.\n{}\n'.format(
-                remote_loc, remote_log)
-                return log, {'end_of_log': True}
-            except Exception:
-                raise
-        return super(S3TaskHandler, self)._read(ti, try_number)
+        if self.s3_log_exists(new_remote_loc):
+            remote_loc = new_remote_loc
+        elif self.s3_log_exists(old_remote_loc):
+            remote_loc = old_remote_loc
+        else:
+            return super(S3TaskHandler, self)._read(ti, try_number)
+
+        remote_log = self.s3_read(remote_loc, return_error=True)
+        log = '*** Reading remote log from {}.\n{}\n'.format(remote_loc, remote_log)
+        return log, {'end_of_log': True}
 
     def s3_log_exists(self, remote_log_location):
         """

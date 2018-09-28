@@ -374,3 +374,12 @@ class AirflowImporter(object):
             return loaded_attribute
 
         raise AttributeError
+
+
+def make_timezone_naive(s):
+    """Convert a timestamp string from timezone aware to timezone naive.
+
+    ..NOTE ::
+        This assumes that all timestamps involved are UTC.
+    """
+    return s.replace('+00:00', '')

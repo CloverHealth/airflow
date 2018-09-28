@@ -24,7 +24,7 @@ import requests
 from airflow import configuration as conf
 from airflow.configuration import AirflowConfigException
 from airflow.utils.file import mkdirs
-from airflow.utils.helpers import parse_template_string
+from airflow.utils.helpers import make_timezone_naive, parse_template_string
 
 
 class FileTaskHandler(logging.Handler):
@@ -206,28 +206,18 @@ class FileTaskHandler(logging.Handler):
 
         return full_path
 
-    def _try_both_log_locations(self, url, timeout, log):
+    @staticmethod
+    def _try_both_log_locations(url, timeout, log):
         """If a logfile cannot be found, try the timezone naive url format."""
-        response = requests.get(url, timeout=timeout)
 
         try:
-            response.raise_for_status()
-        except requests.HTTPError as _:
+            response = requests.get(url, timeout=timeout)
+        except requests.exceptions.ConnectionError as _:
             log += "*** (clover patch) Cannot find log at filename {url}\n".format(url=url)
-            old_url = self._convert_to_old_url(url)
+            old_url = make_timezone_naive(url)
             try:
                 response = requests.get(old_url, timeout=timeout)
-                response.raise_for_status()
-            except requests.HTTPError as _:
+            except requests.exceptions.ConnectionError as _:
                 log += "*** (clover patch) Cannot find log at filename {old_url}\n".format(old_url=old_url)
 
         return response, log
-
-    @staticmethod
-    def _convert_to_old_url(url):
-        """Convert a logfile url from timezone aware to timezone naive.
-
-        ..NOTE ::
-            This assumes that all timestamps involved are UTC.
-        """
-        return url.replace('+00:00', '')
