@@ -20,7 +20,6 @@ import os
 import re
 
 from airflow import configuration
-from airflow.utils.helpers import make_timezone_naive
 from airflow.utils.log.logging_mixin import LoggingMixin
 from airflow.utils.log.file_task_handler import FileTaskHandler
 
