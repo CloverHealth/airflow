@@ -17,6 +17,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import os
+import re
 
 from airflow import configuration
 from airflow.utils.helpers import make_timezone_naive
@@ -103,11 +104,12 @@ class S3TaskHandler(FileTaskHandler, LoggingMixin):
         # task instance might be different than task instance passed in
         # in set_context method.
         log_relative_path = self._render_filename(ti, try_number)
-        new_remote_loc = os.path.join(self.remote_base, log_relative_path)
-        old_remote_loc = make_timezone_naive(new_remote_loc)
+        remote_loc = os.path.join(self.remote_base, log_relative_path)
 
-        if self.s3_log_exists(new_remote_loc):
-            remote_loc = new_remote_loc
+        old_remote_loc = _gen_old_remote(remote_loc)
+
+        if self.s3_log_exists(remote_loc):
+            pass
         elif self.s3_log_exists(old_remote_loc):
             remote_loc = old_remote_loc
         else:
@@ -173,3 +175,16 @@ class S3TaskHandler(FileTaskHandler, LoggingMixin):
             )
         except:
             self.log.exception('Could not write logs to %s', remote_log_location)
+
+    @staticmethod
+    def _gen_old_remote(remote_location):
+        """ airflow 1.8 stored logs in a different way than 1.10
+        this method just returns a 1.8 style remote location to
+        allow viewing old logs. By 2019 this method could be safely removed
+        old: /DAG/task/timestamp
+        new: /DAG/task/timestamp_with_offset/try_number.log
+        """
+        matched = re.match(r"^(.*?)\+00", remote_location).groups()
+        if matched:
+            # return the capture group, excluding the offset + log
+            return matched[0]
