@@ -105,7 +105,7 @@ class S3TaskHandler(FileTaskHandler, LoggingMixin):
         log_relative_path = self._render_filename(ti, try_number)
         remote_loc = os.path.join(self.remote_base, log_relative_path)
 
-        old_remote_loc = _gen_old_remote(remote_loc)
+        old_remote_loc = self._gen_old_remote(remote_loc)
 
         if self.s3_log_exists(remote_loc):
             pass
