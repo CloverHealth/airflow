@@ -107,15 +107,17 @@ class S3TaskHandler(FileTaskHandler, LoggingMixin):
 
         old_remote_loc = self._gen_old_remote(remote_loc)
 
+        log = ''
         if self.s3_log_exists(remote_loc):
             pass
         elif self.s3_log_exists(old_remote_loc):
             remote_loc = old_remote_loc
+            log += '*** Reading from legacy logs location {}\n'.format(remote_loc)
         else:
             return super(S3TaskHandler, self)._read(ti, try_number)
 
         remote_log = self.s3_read(remote_loc, return_error=True)
-        log = '*** Reading remote log from {}.\n{}\n'.format(remote_loc, remote_log)
+        log += '*** Reading remote log from {}.\n{}\n'.format(remote_loc, remote_log)
         return log, {'end_of_log': True}
 
     def s3_log_exists(self, remote_log_location):
