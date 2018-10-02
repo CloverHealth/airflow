@@ -459,9 +459,8 @@ def run(args, dag=None):
                 try:
                     conf.set(section, option, value)
                 except NoSectionError:
-                    log.error('Section {section} Option {option} '
-                              'does not exist in the config!'.format(section=section,
-                                                                     option=option))
+                    pass
+
 
         settings.configure_vars()
 
