@@ -32,6 +32,7 @@ depends_on = None
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import TSTZRANGE
 
 
 def upgrade():
@@ -39,8 +40,7 @@ def upgrade():
         "dag_slo_snooze",
         sa.Column("id", sa.Integer(), nullable=False, primary_key=True),
         sa.Column("dag_id", sa.String(length=250), nullable=False),
-        sa.Column("start_time", sa.DateTime(), nullable=False),
-        sa.Column("end_time", sa.DateTime(), nullable=False),
+        sa.Column("snooze_range", TSTZRANGE, nullable=False),
         sa.Column("created_at", sa.DateTime(), server_default=sa.func.now()),
         sa.Column("deleted_at", sa.DateTime(), nullable=True),
         sa.Column("reason", sa.Text(), nullable=False),

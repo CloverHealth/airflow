@@ -58,6 +58,7 @@ from sqlalchemy import (
     Column, Integer, String, DateTime, Text, Boolean, ForeignKey, PickleType,
     Index, Float, LargeBinary, UniqueConstraint)
 from sqlalchemy import func, or_, and_, true as sqltrue
+from sqlalchemy.dialects.postgresql import TSTZRANGE
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.orm import reconstructor, relationship, synonym
 
@@ -5297,9 +5298,8 @@ class DagSLOSnooze(Base):
     __tablename__ = "dag_slo_snooze"
 
     id = Column(Integer, primary_key=True)
-    dag_id = Column(String(ID_LEN))
-    start_date = Column(UtcDateTime)
-    end_date = Column(UtcDateTime)
+    dag_id = Column(String(ID_LEN), nullable=False)
+    snooze_range = Column(TSTZRANGE, nullable=False)
 
     reason = Column(Text)
     notes = Column(Text)
