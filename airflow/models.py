@@ -5291,3 +5291,19 @@ class KubeWorkerIdentifier(Base):
                 KubeWorkerIdentifier.worker_uuid: worker_uuid
             })
             session.commit()
+
+
+class DagSLOSnooze(Base):
+    __tablename__ = "dag_slo_snooze"
+
+    id = Column(Integer, primary_key=True)
+    dag_id = Column(String(ID_LEN))
+    start_date = Column(UtcDateTime)
+    end_date = Column(UtcDateTime)
+
+    reason = Column(Text)
+    notes = Column(Text)
+    user = Column(Text)
+
+    created_at = Column(UtcDateTime, server_default=func.now())
+    deleted_at = Column(UtcDateTime, nullable=True)
