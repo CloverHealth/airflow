@@ -45,7 +45,7 @@ def upgrade():
         sa.Column("deleted_at", sa.DateTime(), nullable=True),
         sa.Column("reason", sa.Text(), nullable=False),
         sa.Column("notes", sa.Text(), nullable=True),
-        sa.column("user", sa.Text(), nullable=False),
+        sa.Column("user", sa.Text(), nullable=False),
     )
 
 
