@@ -163,14 +163,31 @@ elasticsearch = [
     'elasticsearch-dsl>=5.0.0,<6.0.0'
 ]
 emr = ['boto3>=1.0.0']
-gcp_api = [
-    'httplib2>=0.9.2',
+gcp = [
+    # Please keep the list in alphabetical order
     'google-api-python-client>=1.6.0, <2.0.0dev',
-    'google-auth>=1.0.0, <2.0.0dev',
     'google-auth-httplib2>=0.0.1',
+    'google-auth>=1.0.0, <2.0.0dev',
+    'google-cloud-automl>=0.4.0',
+    'google-cloud-bigtable==1.0.0',
+    'google-cloud-bigquery-datatransfer>=0.4.0',
     'google-cloud-container>=0.1.1',
+    'google-cloud-dlp>=0.11.0',
+    'google-cloud-kms>=1.2.1',
+    'google-cloud-language>=1.1.1',
+    'google-cloud-redis>=0.3.0',
+    'google-cloud-spanner>=1.10.0',
+    'google-cloud-speech>=0.36.3',
+    'google-cloud-storage~=1.16',
+    'google-cloud-tasks==1.2.1',
+    'google-cloud-texttospeech>=0.4.0',
+    'google-cloud-translate>=1.5.0',
+    'google-cloud-videointelligence>=1.7.0',
+    'google-cloud-vision>=0.35.2',
+    'grpcio-gcp>=0.2.2',
+    'httplib2~=0.9.2',
+    'pandas-gbq',
     'PyOpenSSL',
-    'pandas-gbq'
 ]
 github_enterprise = ['Flask-OAuthlib>=0.9.1']
 hdfs = ['snakebite>=2.7.8']
@@ -241,7 +258,7 @@ devel = [
 devel_minreq = devel + kubernetes + mysql + doc + password + s3 + cgroups
 devel_hadoop = devel_minreq + hive + hdfs + webhdfs + kerberos
 devel_all = (sendgrid + devel + all_dbs + doc + samba + s3 + slack + crypto + oracle +
-             docker + ssh + kubernetes + celery + azure_blob_storage + redis + gcp_api +
+             docker + ssh + kubernetes + celery + azure_blob_storage + redis + gcp +
              datadog + zendesk + jdbc + ldap + kerberos + password + webhdfs + jenkins +
              druid + pinot + segment + snowflake + elasticsearch + azure_data_lake +
              atlas)
@@ -332,7 +349,8 @@ def do_setup():
             'druid': druid,
             'elasticsearch': elasticsearch,
             'emr': emr,
-            'gcp_api': gcp_api,
+            'gcp_api': gcp,
+            'gcp': gcp,
             'github_enterprise': github_enterprise,
             'hdfs': hdfs,
             'hive': hive,
