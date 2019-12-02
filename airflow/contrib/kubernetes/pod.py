@@ -78,7 +78,7 @@ class Pod:
             resources=None,
             annotations=None,
             affinity=None,
-            tolerances=None
+            tolerations=None
     ):
         self.image = image
         self.envs = envs or {}
