@@ -39,6 +39,10 @@ def create_session():
     """
     Contextmanager that will create and teardown a session.
     """
+    have_session = True
+    if settings.Session is None:
+        have_session = False
+        settings.configure_orm(disable_connection_pool=True)
     session = settings.Session()
     try:
         yield session
@@ -48,6 +52,8 @@ def create_session():
         raise
     finally:
         session.close()
+        if not have_session:
+            settings.dispose_orm()
 
 
 def provide_session(func):

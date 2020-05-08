@@ -143,18 +143,15 @@ class GCSTaskHandler(FileTaskHandler, LoggingMixin):
                 if not hasattr(e, 'resp') or e.resp.get('status') != '404':
                     log = '*** Previous log discarded: {}\n\n'.format(str(e)) + log
 
-        try:
-            bkt, blob = self.parse_gcs_url(remote_log_location)
-            from tempfile import NamedTemporaryFile
-            with NamedTemporaryFile(mode='w+') as tmpfile:
-                tmpfile.write(log)
-                # Force the file to be flushed, since we're doing the
-                # upload from within the file context (it hasn't been
-                # closed).
-                tmpfile.flush()
-                self.hook.upload(bkt, blob, tmpfile.name)
-        except Exception as e:
-            self.log.error('Could not write logs to %s: %s', remote_log_location, e)
+        bkt, blob = self.parse_gcs_url(remote_log_location)
+        from tempfile import NamedTemporaryFile
+        with NamedTemporaryFile(mode='w+') as tmpfile:
+            tmpfile.write(log)
+            # Force the file to be flushed, since we're doing the
+            # upload from within the file context (it hasn't been
+            # closed).
+            tmpfile.flush()
+            self.hook.upload(bkt, blob, tmpfile.name)
 
     @staticmethod
     def parse_gcs_url(gsurl):
