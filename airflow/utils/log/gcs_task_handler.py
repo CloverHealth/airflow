@@ -24,7 +24,7 @@ from airflow.configuration import conf
 from airflow.exceptions import AirflowException
 from airflow.utils.log.logging_mixin import LoggingMixin
 from airflow.utils.log.file_task_handler import FileTaskHandler
-
+from airflow.contrib.hooks.gcs_hook import GoogleCloudStorageHook
 
 class GCSTaskHandler(FileTaskHandler, LoggingMixin):
     """
@@ -44,17 +44,9 @@ class GCSTaskHandler(FileTaskHandler, LoggingMixin):
     @cached_property
     def hook(self):
         remote_conn_id = conf.get('core', 'REMOTE_LOG_CONN_ID')
-        try:
-            from airflow.contrib.hooks.gcs_hook import GoogleCloudStorageHook
-            return GoogleCloudStorageHook(
-                google_cloud_storage_conn_id=remote_conn_id
-            )
-        except Exception as e:
-            self.log.error(
-                'Could not create a GoogleCloudStorageHook with connection id '
-                '"%s". %s\n\nPlease make sure that airflow[gcp] is installed '
-                'and the GCS connection exists.', remote_conn_id, str(e)
-            )
+        return GoogleCloudStorageHook(
+            google_cloud_storage_conn_id=remote_conn_id
+        )
 
     def set_context(self, ti):
         super(GCSTaskHandler, self).set_context(ti)
