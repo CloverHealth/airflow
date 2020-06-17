@@ -261,3 +261,8 @@ class KubernetesRequestFactory:
                     }
                 }
             )
+
+    @staticmethod
+    def extract_schedulername(pod, req):
+        if pod.schedulername:
+            req['spec']['schedulerName'] = pod.schedulername

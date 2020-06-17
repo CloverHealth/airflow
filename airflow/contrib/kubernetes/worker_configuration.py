@@ -397,6 +397,7 @@ class WorkerConfiguration(LoggingMixin):
 
         affinity = kube_executor_config.affinity or self.kube_config.kube_affinity
         tolerations = kube_executor_config.tolerations or self.kube_config.kube_tolerations
+        schedulername = kube_executor_config.schedulername or self.kube_config.schedulername
 
         return Pod(
             namespace=namespace,
@@ -428,5 +429,6 @@ class WorkerConfiguration(LoggingMixin):
             affinity=affinity,
             tolerations=tolerations,
             security_context=self._get_security_context(),
-            configmaps=self._get_configmaps()
+            configmaps=self._get_configmaps(),
+            schedulername=schedulername
         )
